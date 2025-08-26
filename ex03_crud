@@ -1,0 +1,135 @@
+<?php
+
+$arquivo = "disciplinas.txt";
+
+
+if (!file_exists($arquivo)) {
+    file_put_contents($arquivo, "nome;sigla;carga\n");
+}
+
+
+function ler_disciplinas($arquivo) {
+    $disciplinas = [];
+    $linhas = file($arquivo);
+    for ($i = 1; $i < count($linhas); $i++) { 
+        $dados = explode(";", trim($linhas[$i]));
+        if (count($dados) == 3) {
+            $disciplinas[] = [
+                "id" => $i,
+                "nome" => $dados[0],
+                "sigla" => $dados[1],
+                "carga" => $dados[2]
+            ];
+        }
+    }
+    return $disciplinas;
+}
+
+
+$msg = "";
+
+
+if (isset($_POST['acao']) && $_POST['acao'] == 'cadastrar') {
+    $nome = $_POST['nome'];
+    $sigla = $_POST['sigla'];
+    $carga = $_POST['carga'];
+    $linha = $nome . ";" . $sigla . ";" . $carga . "\n";
+    file_put_contents($arquivo, $linha, FILE_APPEND);
+    $msg = "Disciplina cadastrada com sucesso!";
+}
+
+
+if (isset($_POST['acao']) && $_POST['acao'] == 'editar') {
+    $id = $_POST['id'];
+    $linhas = file($arquivo);
+    $linhas[$id] = $_POST['nome'] . ";" . $_POST['sigla'] . ";" . $_POST['carga'] . "\n";
+    file_put_contents($arquivo, implode("", $linhas));
+    $msg = "Disciplina editada com sucesso!";
+}
+
+
+if (isset($_GET['acao']) && $_GET['acao'] == 'excluir') {
+    $id = $_GET['id'];
+    $linhas = file($arquivo);
+    unset($linhas[$id]);
+    file_put_contents($arquivo, implode("", $linhas));
+    $msg = "Disciplina excluída com sucesso!";
+    header("Location: ".$_SERVER['PHP_SELF']); 
+    exit;
+}
+
+
+$editar = null;
+if (isset($_GET['acao']) && $_GET['acao'] == 'editar') {
+    $id = $_GET['id'];
+    $linhas = file($arquivo);
+    $dados = explode(";", trim($linhas[$id]));
+    $editar = [
+        "id" => $id,
+        "nome" => $dados[0],
+        "sigla" => $dados[1],
+        "carga" => $dados[2]
+    ];
+}
+
+$disciplinas = ler_disciplinas($arquivo);
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CRUD de Disciplinas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        table { border-collapse: collapse; width: 100%; background: #fff; }
+        th, td { border: 1px solid #ffffffff; padding: 8px; text-align: center; }
+        th { background: #1178d8ff; color: white; }
+        tr:nth-child(even) { background: #eee; }
+        form { background: #ffffffff; padding: 15px; margin-bottom: 20px; border: 1px solid #999; }
+        input[type=text], input[type=number] { padding: 5px; width: 200px; }
+        input[type=submit] { padding: 5px 15px; cursor: pointer; }
+        a { text-decoration: none; color: #007BFF; }
+        a:hover { text-decoration: underline; }
+        .msg { color: green; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<h1>CRUD de Disciplinas</h1>
+
+<?php if($msg) echo "<p class='msg'>$msg</p>"; ?>
+
+
+<form method="POST">
+    <input type="hidden" name="acao" value="<?= $editar ? 'editar' : 'cadastrar' ?>">
+    <?php if($editar) { ?>
+        <input type="hidden" name="id" value="<?= $editar['id'] ?>">
+    <?php } ?>
+    Nome: <input type="text" name="nome" value="<?= $editar['nome'] ?? '' ?>" required>
+    Sigla: <input type="text" name="sigla" value="<?= $editar['sigla'] ?? '' ?>" required>
+    Carga Horária: <input type="number" name="carga" value="<?= $editar['carga'] ?? '' ?>" required>
+    <input type="submit" value="<?= $editar ? 'Salvar Alterações' : 'Cadastrar' ?>">
+</form>
+
+
+<table>
+    <tr>
+        <th>Nome</th>
+        <th>Sigla</th>
+        <th>Carga Horária</th>
+        <th>Ações</th>
+    </tr>
+    <?php foreach($disciplinas as $disc) { ?>
+    <tr>
+        <td><?= $disc['nome'] ?></td>
+        <td><?= $disc['sigla'] ?></td>
+        <td><?= $disc['carga'] ?></td>
+        <td>
+            <a href="?acao=editar&id=<?= $disc['id'] ?>">Editar</a> | 
+            <a href="?acao=excluir&id=<?= $disc['id'] ?>" onclick="return confirm('Tem certeza?')">Excluir</a>
+        </td>
+    </tr>
+    <?php } ?>
+</table>
+
+</body>
+</html>
